@@ -1,0 +1,67 @@
+spring:
+  application:
+    name: spring-boot-opentelemetry-sample
+  datasource:
+    url: jdbc:h2:mem:mydb
+    username: sa
+    password: password
+    driverClassName: org.h2.Driver
+    jpa:
+      database-platform: org.hibernate.dialect.H2Dialect
+  kafka:
+    producer:
+      bootstrap-servers: localhost:9092
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+    consumer:
+      auto-offset-reset: latest
+      group-id: ${spring.application.name}
+      bootstrap-servers: localhost:9092
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+
+  management:
+    endpoints:
+      web:
+        exposure:
+          include: '*'
+    endpoint:
+      env:
+        show-values: always
+    tracing:
+      sampling:
+        probability: 1.0
+    metrics:
+      distribution:
+        percentiles:
+          http.server.requests: 0.5, 0.7, 0.95, 0.99
+        percentile-histogram:
+          http.server.requests: 0.5, 0.7, 0.95, 0.99
+      tags:
+        application: ${spring.application.name}
+        env: ${ENV}
+    observations:
+      key-values:
+        application: ${spring.application.name}
+        env: ${ENV}
+otel:
+  instrumentation:
+    runtime-telemetry-java17:
+      enable: true
+      enable-all: true
+    http:
+      client:
+        emit-experimental-telemetry: true
+      server:
+        emit-experimental-telemetry: true
+    micrometer:
+      enabled: true
+    runtime-telemetry:
+      emit-experimental-telemetry: true
+
+logging:
+  level:
+    io.micrometer: debug
+    io.opentelemetry: debug
+

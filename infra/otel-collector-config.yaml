@@ -1,0 +1,60 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+exporters:
+  otlphttp/tempo:
+    endpoint: "http://tempo:4318"
+    headers:
+      X-Scope-OrgID: "my-ord-id"
+    tls:
+      insecure: true
+
+  prometheusremotewrite:
+    endpoint: "http://prometheus:9090/api/v1/write"
+    headers:
+      X-Scope-OrgID: "my-ord-id"
+    tls:
+      insecure: true
+    resource_to_telemetry_conversion:
+      enabled: true
+  debug:
+processors:
+  batch:
+    timeout: 10s
+    send_batch_size: 1024
+  resourcedetection/env:
+    detectors: [ env, system ]
+    timeout: 2s
+    override: false
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 400
+    spike_limit_mib: 100
+
+extensions:
+  health_check:
+  pprof:
+  zpages:
+
+service:
+  extensions: [ health_check, pprof, zpages ]
+  pipelines:
+    traces:
+      receivers: [ otlp ]
+      processors: [ memory_limiter, resourcedetection/env, batch ]
+      exporters: [ debug, otlphttp/tempo ]
+
+    metrics:
+      receivers: [ otlp ]
+      processors: [ memory_limiter, resourcedetection/env, batch ]
+      exporters: [ debug, prometheusremotewrite ]
+
+    logs:
+      receivers: [ otlp ]
+      processors: [ memory_limiter, resourcedetection/env, batch ]
+      exporters: [ debug ]
